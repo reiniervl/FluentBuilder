@@ -41,7 +41,7 @@ class FluentBuilderElement {
 										.noneMatch((mod) -> mod.equals(Modifier.STATIC)))
 						.collect(Collectors.toList());
 
-		members.forEach((m) -> properties.add(checkMethods(m.getSimpleName().toString(), methods)));
+		members.forEach((m) -> properties.add(checkMethods(m, methods)));
 		types.directSupertypes(element.asType()).forEach((t) -> parseProperties(types.asElement(t)) );
 	}
 
@@ -53,14 +53,15 @@ class FluentBuilderElement {
 		return properties;
 	}
 
-	private static Property checkMethods(String name, List<? extends Element> methods) {
-		String upper = firstToUpper(name);
+	private static Property checkMethods(Element element, List<? extends Element> methods) {
+		String upper = firstToUpper(element.getSimpleName().toString());
 		String setterName = "set" + upper;
 		String getterName = "get" + upper;
 		boolean hasSetter = methods.stream().anyMatch((m) -> m.getSimpleName().toString().equals(setterName));
 		boolean hasGetter = methods.stream().anyMatch((m) -> m.getSimpleName().toString().equals(getterName));
+		boolean isFluent = element.getAnnotation(FluentProperty.class) != null;
 
-		return new Property(name, hasGetter, hasSetter);
+		return new Property(element, hasGetter, hasSetter, isFluent);
 	}
 
 	private static String firstToUpper(String string) {
@@ -70,19 +71,20 @@ class FluentBuilderElement {
 	}
 
 	public static class Property {
-		private String name;
-		private boolean getter, setter;
+		private Element element;
+		private boolean getter, setter, fluent;
 
-		Property(String name, boolean getter, boolean setter) {
-			this.name = name;
+		Property(Element element, boolean getter, boolean setter, boolean fluent) {
+			this.element = element;
 			this.getter = getter;
 			this.setter = setter;
+			this.fluent = fluent;
 		}
 
-		String getName() { return name; }
-
+		Element getElement() { return element; }
+		String getName() { return element.getSimpleName().toString(); }
 		boolean hasGetter() { return getter; }
-
 		boolean hasSetter() { return setter; }
+		boolean isFluent() { return fluent; }
 	}
 }
