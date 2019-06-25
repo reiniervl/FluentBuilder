@@ -25,7 +25,7 @@ public class FluentBuilderProcessor extends AbstractProcessor {
 
 		for(TypeElement annotation : annotations) {
 			for(Element element : roundEnv.getElementsAnnotatedWith(annotation)) {
-				FluentBuilderWriter.write(new FluentBuilderElement(element));			
+				FluentBuilderWriter.write(new FluentBuilderElement(element), processingEnv);
 			}
 		}
 		return false;

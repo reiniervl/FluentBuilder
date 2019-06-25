@@ -17,10 +17,12 @@ class FluentBuilderElement {
 	static Types types;
 	static Elements elements;
 
+	private Element enclosing;
 	private String name;
 	private List<Property> properties = new ArrayList<>();
 
 	FluentBuilderElement(Element element) {
+		this.enclosing = element;
 		this.name = element.getSimpleName().toString();
 		parseProperties(element);
 	}
@@ -53,6 +55,10 @@ class FluentBuilderElement {
 		return properties;
 	}
 
+	public Element getEnclosing() {
+		return enclosing;
+	}
+
 	private static Property checkMethods(Element element, List<? extends Element> methods) {
 		String upper = firstToUpper(element.getSimpleName().toString());
 		String setterName = "set" + upper;
@@ -83,6 +89,7 @@ class FluentBuilderElement {
 
 		Element getElement() { return element; }
 		String getName() { return element.getSimpleName().toString(); }
+		String getCapitalizedName() { return firstToUpper(getName()); }
 		boolean hasGetter() { return getter; }
 		boolean hasSetter() { return setter; }
 		boolean isFluent() { return fluent; }
