@@ -1,6 +1,8 @@
 package com.rvlstudio;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
@@ -12,6 +14,7 @@ class FluentBuilderWriter {
 	private String packageName;
 	private String className;
 	private String typeName;
+	private Element enclosing;
 
 	private final String head = "package %3$s;\n" +
 			"\n" +
@@ -46,7 +49,7 @@ class FluentBuilderWriter {
 			"\t}";
 
 	private final String fluentField = "\n\n" +
-			"\tpublic %2$sBuilder<%3$sBuilder<T>> withSub() {\n" +
+			"\tpublic %2$sBuilder<%3$sBuilder<T>> with%4$s() {\n" +
 			"\t\t%2$sBuilder<%3$sBuilder<T>> builder = %2$sBuilder.start(this, (s) -> setVar(result, s, \"%1$s\"));\n" +
 			"\t\treturn builder;\n" +
 			"\t}";
@@ -54,9 +57,8 @@ class FluentBuilderWriter {
 	private final String getField = "\n\nprivate static java.lang.reflect.Field getField(Class<?> clazz, String name) {\n" +
 			"\t\tjava.lang.reflect.Field field = null;\n" +
 			"\t\twhile (clazz != null && field == null) {\n" +
-			"\t\ttry {\n" +
-			"\t\t\t\tfield = clazz.getDeclaredField(name);\n" +
-			"\t\t\t} catch (Exception e) { }\n" +
+			"\t\t\ttry { field = clazz.getDeclaredField(name); }\n" +
+			"\t\t\tcatch (Exception e) { }\n" +
 			"\t\t\tclazz = clazz.getSuperclass();\n" +
 			"\t\t}\n" +
 			"\t\treturn field;\n" +
@@ -82,6 +84,7 @@ class FluentBuilderWriter {
 
 
 	private FluentBuilderWriter(FluentBuilderElement element, ProcessingEnvironment env) {
+		this.enclosing = element.getEnclosing();
 		this.className= element.getName();
 		this.typeName = element.getEnclosing().asType().toString();
 		this.packageName = FluentBuilderElement.elements.getPackageOf(element.getEnclosing()).getQualifiedName().toString();
@@ -103,8 +106,11 @@ class FluentBuilderWriter {
 	}
 
 	private String generateField(FluentBuilderElement.Property property) {
-		if(property.isFluent()) {
-			return String.format(fluentField, property.getName(), FluentBuilderElement.elements.getTypeElement(property.getElement().asType().toString()).getSimpleName(), className, property.getElement().asType().toString());
+		if(property.isFluent() && !property.getElement().asType().getKind().isPrimitive()) {
+			TypeElement te = FluentBuilderElement.elements.getTypeElement(property.getElement().asType().toString());
+			boolean samePackage = FluentBuilderElement.elements.getPackageOf(te).equals(FluentBuilderElement.elements.getPackageOf(enclosing));
+			return String.format(fluentField, property.getName(), samePackage ? te.getSimpleName() : te.getQualifiedName(), className, property.getCapitalizedName());
+
 		} else {
 			return String.format(nonFluentField, property.getCapitalizedName(), property.getName(), className, property.getElement().asType().toString());
 		}
